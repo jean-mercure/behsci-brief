@@ -1,0 +1,5 @@
+free-alba-scottish-female|piper|en_GB-alba-medium|ok
+free-northern-male|piper|en_GB-northern_english_male-medium|ok
+free-semaine-female|piper|en_GB-semaine-medium|ok
+free-alan-male|piper|en_GB-alan-medium|ok
+free-cori-female|piper|en_GB-cori-high|ok
