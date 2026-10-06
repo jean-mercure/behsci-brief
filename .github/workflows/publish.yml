@@ -1,0 +1,167 @@
+name: Publish episodes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "episodes/**"
+      - "assets/**"
+      - "scripts/**"
+      - ".github/workflows/publish.yml"
+  workflow_dispatch:
+    inputs:
+      rerender:
+        description: "Re-render every episode, overwriting existing audio"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+env:
+  TTS_ENGINE: ${{ vars.TTS_ENGINE || 'piper' }}
+  TTS_VOICE: ${{ vars.TTS_VOICE || 'en_GB-alba-medium' }}
+  KEEP_DAYS: ${{ vars.KEEP_DAYS || '90' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+
+      - name: Install piper
+        if: env.TTS_ENGINE == 'piper'
+        run: pip install --quiet piper-tts
+
+      - name: Cache voice models
+        if: env.TTS_ENGINE == 'piper'
+        uses: actions/cache@v4
+        with:
+          path: .voice-cache
+          key: piper-${{ env.TTS_VOICE }}
+
+      - name: Render episodes
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_MODEL: ${{ vars.ELEVENLABS_MODEL }}
+          GOOGLE_TTS_API_KEY: ${{ secrets.GOOGLE_TTS_API_KEY }}
+          AZURE_TTS_KEY: ${{ secrets.AZURE_TTS_KEY }}
+          AZURE_TTS_REGION: ${{ vars.AZURE_TTS_REGION }}
+        run: |
+          mkdir -p audio
+          rendered=0
+          for script in episodes/*.md; do
+            [ -e "$script" ] || continue
+            day=$(basename "$script" .md)
+            target="audio/${day}.mp3"
+            if [ -f "$target" ] && [ "${{ inputs.rerender }}" != "true" ]; then
+              echo "have $target already"
+              continue
+            fi
+            python scripts/synthesize.py \
+              --engine "$TTS_ENGINE" \
+              --voice "$TTS_VOICE" \
+              --text "$script" \
+              --out "$target" \
+              --title "Behavioural Science Daily Brief, $day"
+            rendered=$((rendered + 1))
+          done
+          echo "rendered $rendered episode(s)"
+
+      - name: Prune old audio
+        run: |
+          cutoff=$(date -u -d "-${KEEP_DAYS} days" +%Y-%m-%d)
+          for mp3 in audio/*.mp3; do
+            [ -e "$mp3" ] || continue
+            day=$(basename "$mp3" .mp3)
+            if [[ "$day" < "$cutoff" ]]; then
+              echo "pruning $mp3"
+              rm -f "$mp3"
+            fi
+          done
+
+      - name: Build feed
+        run: |
+          base="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          python scripts/build_feed.py --base-url "$base"
+          python -c "import xml.etree.ElementTree as ET; ET.parse('feed.xml'); print('feed.xml parses cleanly')"
+
+      - name: Commit audio and feed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A audio feed.xml
+          if git diff --cached --quiet; then
+            echo "nothing changed"
+          else
+            git commit -m "Render audio and rebuild feed"
+            git push
+          fi
+
+      - name: Write landing page
+        run: |
+          base="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          python - "$base" <<'PY'
+          import glob, os, sys
+          base = sys.argv[1]
+          rows = []
+          for mp3 in sorted(glob.glob("audio/*.mp3"), reverse=True):
+              day = os.path.basename(mp3)[:-4]
+              rows.append(
+                  f'<li style="margin:0 0 18px 0"><b>{day}</b><br>'
+                  f'<audio controls preload="none" style="width:100%;max-width:520px;margin-top:6px" '
+                  f'src="audio/{os.path.basename(mp3)}"></audio></li>'
+              )
+          html = f"""<!DOCTYPE html>
+          <html lang="en-GB"><head><meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>Behavioural Science Daily Brief</title></head>
+          <body style="margin:0;background:#fff">
+          <div style="max-width:640px;margin:0 auto;padding:32px 18px 60px;
+          font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+          font-size:16px;line-height:1.6;color:#1a1a1a">
+          <h1 style="font-size:22px;margin:0 0 4px">Behavioural Science Daily Brief</h1>
+          <p style="margin:0 0 24px;color:#6b7280;font-size:14px">Audio edition</p>
+          <p style="margin:0 0 10px">To follow this in Apple Podcasts, open Podcasts,
+          go to Library, tap the three-dot menu, choose <i>Follow a Show by URL</i>
+          and paste:</p>
+          <p style="margin:0 0 28px;padding:12px 14px;background:#f4f6f8;
+          font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;
+          word-break:break-all">{base}/feed.xml</p>
+          <h2 style="font-size:16px;margin:0 0 14px">Episodes</h2>
+          <ul style="list-style:none;padding:0;margin:0">{''.join(rows) or '<li>None yet.</li>'}</ul>
+          </div></body></html>"""
+          open("index.html", "w", encoding="utf-8").write(html)
+          print("wrote index.html")
+          PY
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - uses: actions/deploy-pages@v4
+
+      - name: Feed address
+        run: |
+          echo "### Feed ready" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Paste into Apple Podcasts, Library, three-dot menu, Follow a Show by URL:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '`https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/feed.xml`' >> $GITHUB_STEP_SUMMARY
