@@ -1,0 +1,142 @@
+name: Voice samples
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  samples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ffmpeg and piper
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          pip install --quiet piper-tts
+
+      - name: Render candidates
+        env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          GOOGLE_TTS_API_KEY: ${{ secrets.GOOGLE_TTS_API_KEY }}
+          AZURE_TTS_KEY: ${{ secrets.AZURE_TTS_KEY }}
+          AZURE_TTS_REGION: ${{ vars.AZURE_TTS_REGION }}
+        run: |
+          mkdir -p samples/audio
+          render () {
+            engine="$1"; voice="$2"; label="$3"
+            echo "::group::$label"
+            if python scripts/synthesize.py --engine "$engine" --voice "$voice" \
+                 --text samples/sample.md --out "samples/audio/${label}.mp3" \
+                 --title "$label"; then
+              echo "$label|$engine|$voice|ok" >> samples/results.txt
+            else
+              echo "$label|$engine|$voice|failed" >> samples/results.txt
+              echo "skipped $label"
+            fi
+            echo "::endgroup::"
+          }
+
+          rm -f samples/results.txt
+
+          render piper en_GB-alba-medium                  "free-alba-scottish-female"
+          render piper en_GB-northern_english_male-medium "free-northern-male"
+          render piper en_GB-semaine-medium               "free-semaine-female"
+          render piper en_GB-alan-medium                  "free-alan-male"
+          render piper en_GB-cori-high                    "free-cori-female"
+
+          if [ -n "$GOOGLE_TTS_API_KEY" ]; then
+            render google en-GB-Chirp3-HD-Puck "paid-google-puck"
+            render google en-GB-Neural2-B      "paid-google-neural2-b"
+          fi
+          if [ -n "$AZURE_TTS_KEY" ]; then
+            render azure en-GB-RyanNeural  "paid-azure-ryan"
+            render azure en-GB-SoniaNeural "paid-azure-sonia"
+          fi
+          if [ -n "$ELEVENLABS_API_KEY" ]; then
+            render elevenlabs "${{ vars.ELEVENLABS_VOICE_A }}" "paid-elevenlabs-a"
+            render elevenlabs "${{ vars.ELEVENLABS_VOICE_B }}" "paid-elevenlabs-b"
+          fi
+
+          cat samples/results.txt
+
+      - name: Build comparison page
+        run: |
+          python - <<'PY'
+          import os
+          rows = []
+          if os.path.exists("samples/results.txt"):
+              for line in open("samples/results.txt"):
+                  label, engine, voice, status = line.strip().split("|")
+                  if status != "ok":
+                      rows.append(
+                          f'<li style="margin:0 0 16px;color:#9ca3af">{label} '
+                          f'<span style="font-size:13px">({engine}, {voice}) '
+                          f'did not render</span></li>')
+                      continue
+                  cost = "free" if label.startswith("free-") else "paid"
+                  tint = "#15803d" if cost == "free" else "#b45309"
+                  rows.append(
+                      f'<li style="margin:0 0 20px"><b>{label}</b> '
+                      f'<span style="color:{tint};font-size:12px;text-transform:uppercase;'
+                      f'letter-spacing:.05em">{cost}</span><br>'
+                      f'<span style="color:#6b7280;font-size:13px">{engine} &middot; {voice}</span><br>'
+                      f'<audio controls preload="none" style="width:100%;max-width:520px;margin-top:6px" '
+                      f'src="samples/audio/{label}.mp3"></audio></li>')
+          html = f"""<!DOCTYPE html>
+          <html lang="en-GB"><head><meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <title>Voice samples</title></head>
+          <body style="margin:0;background:#fff">
+          <div style="max-width:640px;margin:0 auto;padding:32px 18px 60px;
+          font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+          font-size:16px;line-height:1.6;color:#1a1a1a">
+          <h1 style="font-size:22px;margin:0 0 4px">Voice samples</h1>
+          <p style="margin:0 0 24px;color:#6b7280;font-size:14px">
+          The same passage of a real brief, read by each candidate.</p>
+          <ul style="list-style:none;padding:0;margin:0 0 30px">{''.join(rows)}</ul>
+          <p style="margin:0;padding:14px 16px;background:#f4f6f8;font-size:15px">
+          Once you have chosen, set <code>TTS_ENGINE</code> and <code>TTS_VOICE</code>
+          under Settings, Secrets and variables, Actions, Variables.</p>
+          </div></body></html>"""
+          open("samples/index.html", "w", encoding="utf-8").write(html)
+          PY
+
+      - name: Commit samples
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A samples
+          if git diff --cached --quiet; then
+            echo "nothing changed"
+          else
+            git commit -m "Render voice samples"
+            git push
+          fi
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - uses: actions/deploy-pages@v4
+
+      - name: Where to listen
+        run: |
+          echo "### Samples ready" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/samples/" >> $GITHUB_STEP_SUMMARY
