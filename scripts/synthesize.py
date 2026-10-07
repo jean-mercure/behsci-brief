@@ -20,6 +20,9 @@ Usage
 The script file may carry a YAML front matter block; it is stripped before
 synthesis. Lines beginning with "#" are treated as headings and spoken without
 the hashes. Anything inside [[...]] is treated as a production note and dropped.
+
+Every episode opens with the sting in assets/, unless --no-jingle is passed or
+the file is absent.
 """
 
 from __future__ import annotations
@@ -41,6 +44,10 @@ CACHE = Path(".voice-cache")
 # Long scripts have to be cut up: the hosted APIs cap a single request at a few
 # thousand characters, and piper is happier with paragraph-sized chunks too.
 CHUNK_LIMIT = 2200
+
+# The opening sting, and the silence between it and the first spoken word.
+JINGLE = Path("assets/2026-10-07_behsci-brief-jingle.wav")
+JINGLE_GAP = 0.4
 
 
 # --------------------------------------------------------------------------- #
@@ -241,7 +248,8 @@ ENGINES = {
 # Assembly
 # --------------------------------------------------------------------------- #
 
-def concatenate(parts: list[Path], out: Path, title: str, date: str) -> None:
+def concatenate(parts: list[Path], out: Path, title: str, date: str,
+                jingle: Path | None = None) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as listing:
         for part in parts:
@@ -249,17 +257,43 @@ def concatenate(parts: list[Path], out: Path, title: str, date: str) -> None:
         listing_path = listing.name
 
     # A short pause between chunks reads as a paragraph break rather than a cut.
-    subprocess.run([
+    cmd = [
         "ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
         "-f", "concat", "-safe", "0", "-i", listing_path,
-        "-af", "loudnorm=I=-16:TP=-1.5:LRA=11",
+    ]
+
+    if jingle is not None:
+        # The sting is already mastered to -16 LUFS, so only the speech goes
+        # through loudnorm; putting music through the same dynamic pass as
+        # speech makes the transition pump. The two are then joined with the
+        # concat FILTER rather than the demuxer, because the demuxer insists on
+        # identical codec parameters and the engines above emit a mixture of
+        # 22.05 kHz WAV and 24 kHz MP3.
+        cmd += ["-i", str(jingle)]
+        cmd += [
+            "-filter_complex",
+            (
+                "[0:a]loudnorm=I=-16:TP=-1.5:LRA=11,"
+                "aresample=44100,aformat=sample_fmts=s16:channel_layouts=mono"
+                "[speech];"
+                "[1:a]aresample=44100,aformat=sample_fmts=s16:channel_layouts=mono,"
+                f"apad=pad_dur={JINGLE_GAP}[sting];"
+                "[sting][speech]concat=n=2:v=0:a=1[out]"
+            ),
+            "-map", "[out]",
+        ]
+    else:
+        cmd += ["-af", "loudnorm=I=-16:TP=-1.5:LRA=11"]
+
+    cmd += [
         "-codec:a", "libmp3lame", "-b:a", "96k", "-ar", "44100", "-ac", "1",
         "-metadata", f"title={title}",
         "-metadata", "artist=Behavioural Science Daily Brief",
         "-metadata", "album=Behavioural Science Daily Brief",
         "-metadata", f"date={date}",
         str(out),
-    ], check=True)
+    ]
+    subprocess.run(cmd, check=True)
     os.unlink(listing_path)
 
 
@@ -270,7 +304,19 @@ def main() -> None:
     ap.add_argument("--text", required=True, type=Path)
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--title", default="")
+    ap.add_argument("--jingle", type=Path, default=JINGLE,
+                    help="Opening sting prepended to the episode.")
+    ap.add_argument("--no-jingle", action="store_true",
+                    help="Render speech only.")
     args = ap.parse_args()
+
+    jingle = None
+    if not args.no_jingle:
+        if args.jingle and args.jingle.exists():
+            jingle = args.jingle
+        else:
+            print(f"note: {args.jingle} not found, rendering without the "
+                  f"opening sting", flush=True)
 
     text = load_script(args.text)
     if not text:
@@ -283,7 +329,7 @@ def main() -> None:
 
     with tempfile.TemporaryDirectory() as tmp:
         parts = ENGINES[args.engine](chunks, args.voice, Path(tmp))
-        concatenate(parts, args.out, args.title or date, date)
+        concatenate(parts, args.out, args.title or date, date, jingle)
 
     size = args.out.stat().st_size
     print(f"wrote {args.out} ({size / 1_048_576:.1f} MB)")
