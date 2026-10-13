@@ -23,8 +23,30 @@
     <itunes:explicit>false</itunes:explicit>
     <itunes:type>episodic</itunes:type>
     <itunes:block>Yes</itunes:block>
-    <lastBuildDate>Tue, 13 Oct 2026 15:24:08 +0000</lastBuildDate>
-    <pubDate>Tue, 13 Oct 2026 15:24:08 +0000</pubDate>
+    <lastBuildDate>Tue, 13 Oct 2026 15:45:27 +0000</lastBuildDate>
+    <pubDate>Tue, 13 Oct 2026 15:45:27 +0000</pubDate>
+    <item>
+      <title>Tuesday 13 October 2026</title>
+      <description>Why language models are poor stand-ins for human economic preferences, and what a life-satisfaction question measures. Also polygenic indices and voting, musicians and the ventriloquism illusion, hippocampal replay, statistical power, and patience at university.</description>
+      <itunes:summary>Why language models are poor stand-ins for human economic preferences, and what a life-satisfaction question measures. Also polygenic indices and voting, musicians and the ventriloquism illusion, hippocampal replay, statistical power, and patience at university.</itunes:summary>
+      <pubDate>Tue, 13 Oct 2026 06:30:00 +0000</pubDate>
+      <guid isPermaLink="false">behsci-brief-2026-10-13</guid>
+      <enclosure url="https://jean-mercure.github.io/behsci-brief/audio/2026-10-13.mp3" length="9182353" type="audio/mpeg"/>
+      <itunes:duration>12:45</itunes:duration>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>Monday 12 October 2026</title>
+      <description>What a randomised trial can and cannot establish about systemic discrimination, plus attention and allergic reactions. Also boredom and aggression, antidepressants in pregnancy, techno-optimistic scientists, long-term single adults, and an LSE project on curiosity.</description>
+      <itunes:summary>What a randomised trial can and cannot establish about systemic discrimination, plus attention and allergic reactions. Also boredom and aggression, antidepressants in pregnancy, techno-optimistic scientists, long-term single adults, and an LSE project on curiosity.</itunes:summary>
+      <pubDate>Mon, 12 Oct 2026 06:30:00 +0000</pubDate>
+      <guid isPermaLink="false">behsci-brief-2026-10-12</guid>
+      <enclosure url="https://jean-mercure.github.io/behsci-brief/audio/2026-10-12.mp3" length="8713089" type="audio/mpeg"/>
+      <itunes:duration>12:06</itunes:duration>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
     <item>
       <title>Sunday 11 October 2026</title>
       <description>Belief in demons tracks structural explanations of poverty while belief in a supportive God tracks the opposite; incentivised patience and risk aversion predict which degree young Danes apply for; able women are read as hostile by their colleagues and able men are not. The concept of the day is attribution, dispositional against situational, from the psychological science course.</description>
