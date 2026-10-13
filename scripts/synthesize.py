@@ -46,7 +46,7 @@ CACHE = Path(".voice-cache")
 CHUNK_LIMIT = 2200
 
 # The opening sting, and the silence between it and the first spoken word.
-JINGLE = Path("assets/2026-10-07_behsci-brief-jingle.wav")
+JINGLE = Path("assets/jingle.wav")
 JINGLE_GAP = 0.4
 
 
