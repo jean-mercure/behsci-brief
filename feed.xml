@@ -23,8 +23,8 @@
     <itunes:explicit>false</itunes:explicit>
     <itunes:type>episodic</itunes:type>
     <itunes:block>Yes</itunes:block>
-    <lastBuildDate>Thu, 22 Oct 2026 14:22:50 +0000</lastBuildDate>
-    <pubDate>Thu, 22 Oct 2026 14:22:50 +0000</pubDate>
+    <lastBuildDate>Thu, 22 Oct 2026 14:27:55 +0000</lastBuildDate>
+    <pubDate>Thu, 22 Oct 2026 14:27:55 +0000</pubDate>
     <item>
       <title>Thursday 22 October 2026</title>
       <description>Moral criticism of meat eating produces defensiveness rather than dietary change; a meta-analysis of pay and personality; several low roads to the amygdala, and not the famous one; a dog-touch study whose preregistered prediction failed; testosterone and a robot baby; and self-rated looks. The concept of the day is Ego, the MINDSPACE element behind the first of those.</description>
@@ -33,6 +33,28 @@
       <guid isPermaLink="false">behsci-brief-2026-10-22</guid>
       <enclosure url="https://jean-mercure.github.io/behsci-brief/audio/2026-10-22.mp3" length="8821550" type="audio/mpeg"/>
       <itunes:duration>12:15</itunes:duration>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>Wednesday 21 October 2026</title>
+      <description>Brain measures that predict thinking until the sample changes, considerate people and the self-first bias, twenty-one genetic hits in women and five in men, horror fandom that failed to replicate in Lebanon, dark traits in mate choice, and heart-rate variability before a creative task. The concept of the day is what variance explained means when a model has to predict.</description>
+      <itunes:summary>Brain measures that predict thinking until the sample changes, considerate people and the self-first bias, twenty-one genetic hits in women and five in men, horror fandom that failed to replicate in Lebanon, dark traits in mate choice, and heart-rate variability before a creative task. The concept of the day is what variance explained means when a model has to predict.</itunes:summary>
+      <pubDate>Wed, 21 Oct 2026 06:30:00 +0000</pubDate>
+      <guid isPermaLink="false">behsci-brief-2026-10-21</guid>
+      <enclosure url="https://jean-mercure.github.io/behsci-brief/audio/2026-10-21.mp3" length="9624345" type="audio/mpeg"/>
+      <itunes:duration>13:21</itunes:duration>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:explicit>false</itunes:explicit>
+    </item>
+    <item>
+      <title>Tuesday 20 October 2026</title>
+      <description>A thin day: a word-free test of how people read character from faces, practising letters upside down, lineups against one-to-one face matching, a network that predicts depression four years out, occupation and mate preference, and self-chosen nudges. The concept of the day is the instrument that creates the dimensions of person perception.</description>
+      <itunes:summary>A thin day: a word-free test of how people read character from faces, practising letters upside down, lineups against one-to-one face matching, a network that predicts depression four years out, occupation and mate preference, and self-chosen nudges. The concept of the day is the instrument that creates the dimensions of person perception.</itunes:summary>
+      <pubDate>Tue, 20 Oct 2026 06:30:00 +0000</pubDate>
+      <guid isPermaLink="false">behsci-brief-2026-10-20</guid>
+      <enclosure url="https://jean-mercure.github.io/behsci-brief/audio/2026-10-20.mp3" length="9650676" type="audio/mpeg"/>
+      <itunes:duration>13:24</itunes:duration>
       <itunes:episodeType>full</itunes:episodeType>
       <itunes:explicit>false</itunes:explicit>
     </item>
